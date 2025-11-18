@@ -1,0 +1,12 @@
+# Android
+.gradle
+/local.properties
+/.idea
+/build
+/app/build
+*.apk
+*.aar
+
+# Kotlin
+*.kts
+out/
