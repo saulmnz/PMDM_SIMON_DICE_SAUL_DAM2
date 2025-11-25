@@ -9,11 +9,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.example.simon_dice_saul.domain.MotorJuegoSimon
 import com.example.simon_dice_saul.data.model.ColorSimon
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 
-// VIEWMODEL: INTERMEDIARIO ENTRE LA LÓGICA DE NEGOCIO Y LA INTERFAZ (MVVM)
-class ModeloVistaSimon : ViewModel() {
-
-    // ESTADO DE LA UI EXPUESTO COMO STATEFLOW → REACTIVO Y SEGURO PARA COMPOSE
+class ModeloVistaSimon(
+    private val dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    private val skipDelaysForTest: Boolean = false
+) : ViewModel() {
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
@@ -89,8 +91,15 @@ class ModeloVistaSimon : ViewModel() {
             copy(highlightedColor = colorAResaltar)
         }
 
+        if (skipDelaysForTest) {
+            indiceSecuenciaActual++
+            mostrarSiguienteColor(secuencia)
+            return
+        }
+
+
         // USAR CORRUTINAS PARA EL RETRASO (EVITA BLOQUEAR EL HILO PRINCIPAL)
-        viewModelScope.launch {
+        viewModelScope.launch(dispatcher) {
             delay(600L)
             indiceSecuenciaActual++
             mostrarSiguienteColor(secuencia)
@@ -133,9 +142,13 @@ class ModeloVistaSimon : ViewModel() {
                     highlightedColor = null
                 )
             }
-            viewModelScope.launch {
-                delay(1500L) // PAUSA VISUAL PARA MOSTRAR MENSAJE "Ronda X superada"
+            if (skipDelaysForTest) {
                 generarYMostrarSecuencia()
+            } else {
+                viewModelScope.launch(dispatcher) {
+                    delay(1500L)
+                    generarYMostrarSecuencia()
+                }
             }
         } else {
             // ENTRADA CORRECTA PERO SEC. INCOMPLETA → SEGUIR ESPERANDO
@@ -176,5 +189,10 @@ class ModeloVistaSimon : ViewModel() {
 
     sealed class EventEffect {
         object ErrorSound : EventEffect()
+    }
+
+    // TESTS
+    fun forTest_setUiState(state: UiState) {
+        _uiState.value = state
     }
 }
