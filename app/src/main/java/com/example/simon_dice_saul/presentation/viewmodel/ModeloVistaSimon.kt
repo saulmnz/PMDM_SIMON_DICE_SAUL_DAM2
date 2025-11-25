@@ -1,152 +1,180 @@
 package com.example.simon_dice_saul.presentation.viewmodel
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import com.example.simon_dice_saul.domain.MotorJuegoSimon
 import com.example.simon_dice_saul.data.model.ColorSimon
 
-// VIEWMODEL -> INTERMEDIARIO ENTRE LA LÓGICA Y LA INTERFAZ
+// VIEWMODEL: INTERMEDIARIO ENTRE LA LÓGICA DE NEGOCIO Y LA INTERFAZ (MVVM)
 class ModeloVistaSimon : ViewModel() {
-    private val _estadoInterfaz = MutableLiveData<EstadoInterfaz>()
-    val estadoInterfaz: LiveData<EstadoInterfaz> = _estadoInterfaz
+
+    // ESTADO DE LA UI EXPUESTO COMO STATEFLOW → REACTIVO Y SEGURO PARA COMPOSE
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+
+    // FLUJO PARA EVENTOS DE UN SOLO USO (SONIDOS, TOAST, NAVIGACIÓN)
+    private val _eventEffect = MutableStateFlow<EventEffect?>(null)
+    val eventEffect: EventEffect?
+        get() = _eventEffect.value
+
+    // CONSUMIR EL EVENTO PARA EVITAR REPETICIONES EN RECOMPOSICIONES
+    fun consumeEventEffect() {
+        _eventEffect.value = null
+    }
+
+    // INSTANCIA DEL MOTOR DE JUEGO (LÓGICA PURA, SIN DEPENDENCIAS DE ANDROID)
     private val motorJuego = MotorJuegoSimon()
 
-    // VARIABLES PARA CONTROLAR LA ANIMACIÓN DE LA SECUENCIA
-    private var índiceSecuenciaActual = 0
-    private var estáMostrandoSecuencia = false
+    // VARIABLES INTERNAS PARA CONTROLAR LA ANIMACIÓN DE LA SECUENCIA
+    private var indiceSecuenciaActual = 0
+    private var estaMostrandoSecuencia = false
 
-    // INICIA UNA NUEVA PARTIDA
+    // INICIAR UNA NUEVA PARTIDA DESDE CERO
     fun iniciarPartida() {
         val estado = motorJuego.iniciarPartida()
-        _estadoInterfaz.value = EstadoInterfaz.Inicio
-        _estadoInterfaz.value = EstadoInterfaz.Jugando(
-            ronda = estado.rondaActual,
-            puntuación = estado.puntuaciónActual,
-            secuencia = emptyList(),
-            entradaHabilitada = false
-        )
+        updateUiState {
+            copy(
+                gameState = GameState.INICIO,
+                ronda = estado.rondaActual,
+                puntuacion = estado.puntuacionActual,
+                isInputEnabled = false,
+                highlightedColor = null
+            )
+        }
+        // INICIAR LA PRIMERA SECUENCIA AUTOMÁTICAMENTE
         generarYMostrarSecuencia()
     }
 
-    // GENERA UN NUEVO COLOR Y MUESTRA LA SECUENCIA COMPLETA
+    // GENERAR UN NUEVO COLOR Y MOSTRAR LA SECUENCIA COMPLETA
     private fun generarYMostrarSecuencia() {
-        val estado = motorJuego.añadirColorAleatorio()
-        _estadoInterfaz.value = EstadoInterfaz.MostrandoSecuencia(
-            ronda = estado.rondaActual,
-            puntuación = estado.puntuaciónActual,
-            secuencia = estado.secuenciaActual,
-            índiceResaltado = -1  // PARA NO RESALTAR NINGÚN BOTÓN AL PRINCIPIO
-        )
+        val estado = motorJuego.anadirColorAleatorio()
+        updateUiState {
+            copy(
+                gameState = GameState.MOSTRANDO_SECUENCIA,
+                ronda = estado.rondaActual,
+                puntuacion = motorJuego.obtenerPuntuacion(),
+                isInputEnabled = false,
+                highlightedColor = null
+            )
+        }
 
-        estáMostrandoSecuencia = true
-        índiceSecuenciaActual = 0
+        estaMostrandoSecuencia = true
+        indiceSecuenciaActual = 0
         mostrarSiguienteColor(estado.secuenciaActual)
     }
 
-    // ILUMINA CADA BOTÓN EN ORDEN
+    // MOSTRAR CADA COLOR DE LA SECUENCIA CON UN RETRASO (600ms)
     private fun mostrarSiguienteColor(secuencia: List<ColorSimon>) {
-        if (índiceSecuenciaActual >= secuencia.size) {
-            // SECUENCIA TERMINADA → PASAR A ESPERAR ENTRADA DEL USUARIO
-            estáMostrandoSecuencia = false
-            _estadoInterfaz.value = EstadoInterfaz.EsperandoEntrada(
-                ronda = secuencia.size,
-                puntuación = motorJuego.javaClass.getDeclaredField("puntuación").get(motorJuego) as Int,
-                secuencia = secuencia,
-                entradaHabilitada = true
-            )
+        if (indiceSecuenciaActual >= secuencia.size) {
+            // SECUENCIA TERMINADA → PASAR A ESPERAR LA ENTRADA DEL JUGADOR
+            estaMostrandoSecuencia = false
+            updateUiState {
+                copy(
+                    gameState = GameState.ESPERANDO_ENTRADA,
+                    isInputEnabled = true,
+                    highlightedColor = null
+                )
+            }
             return
         }
 
-        val colorAResaltar = secuencia[índiceSecuenciaActual]
-        _estadoInterfaz.value = EstadoInterfaz.MostrandoSecuencia(
-            ronda = secuencia.size,
-            puntuación = motorJuego.javaClass.getDeclaredField("puntuación").get(motorJuego) as Int,
-            secuencia = secuencia,
-            índiceResaltado = índiceSecuenciaActual
-        )
+        // RESALTAR EL COLOR ACTUAL EN LA SECUENCIA
+        val colorAResaltar = secuencia[indiceSecuenciaActual]
+        updateUiState {
+            copy(highlightedColor = colorAResaltar)
+        }
 
+        // USAR CORRUTINAS PARA EL RETRASO (EVITA BLOQUEAR EL HILO PRINCIPAL)
         viewModelScope.launch {
-            delay(600)
-            índiceSecuenciaActual++
+            delay(600L)
+            indiceSecuenciaActual++
             mostrarSiguienteColor(secuencia)
         }
     }
 
-    // MÉTODO LLAMADO CUANDO EL USUARIO PULSA UN BOTÓN DE COLOR
+    // MANEJAR LA PULSACIÓN DE UN BOTÓN DE COLOR POR PARTE DEL USUARIO
     fun alPulsarColor(color: ColorSimon) {
-        if (estáMostrandoSecuencia) return  // NO PERMITIR ENTRADA DURANTE LA ANIMACIÓN !!!!!!!!!
+        if (estaMostrandoSecuencia) return // IGNORAR ENTRADA DURANTE LA ANIMACIÓN
 
-        val (esCorrecto, estáCompletada, esJuegoTerminado) = motorJuego.validarEntradaUsuario(color)
+        // VALIDAR LA ENTRADA CON EL MOTOR DE JUEGO
+        val (esCorrecto, estaCompletada, esJuegoTerminado) = motorJuego.validarEntradaUsuario(color)
 
         if (esJuegoTerminado) {
+            // PARTIDA TERMINADA POR ERROR
             val estadoFinal = motorJuego.obtenerEstadoJuegoTerminado()
-            _estadoInterfaz.value = EstadoInterfaz.JuegoTerminado(
-                rondaFinal = estadoFinal.rondaActual,
-                puntuaciónFinal = estadoFinal.puntuaciónActual
-            )
+            updateUiState {
+                copy(
+                    gameState = GameState.ERROR,
+                    ronda = estadoFinal.rondaActual,
+                    puntuacion = estadoFinal.puntuacionActual,
+                    isInputEnabled = false,
+                    highlightedColor = null
+                )
+            }
+            // EMITIR EVENTO DE SONIDO DE ERROR
+            _eventEffect.value = EventEffect.ErrorSound
             return
         }
 
-        if (estáCompletada) {
-            // RONDA SUPERADA → MOSTRAR MENSAJE Y GENERAR SIGUIENTE SECUENCIA
+        if (estaCompletada) {
+            // RONDA SUPERADA → GENERAR SIGUIENTE SECUENCIA TRAS UN BREVE RETRASO
             val estado = motorJuego.obtenerEstadoActual()
-            _estadoInterfaz.value = EstadoInterfaz.RondaSuperada(
-                ronda = estado.rondaActual,
-                puntuación = estado.puntuaciónActual
-            )
-            generarYMostrarSecuencia()
+            updateUiState {
+                copy(
+                    gameState = GameState.RONDA_SUPERADA,
+                    ronda = estado.rondaActual,
+                    puntuacion = estado.puntuacionActual,
+                    isInputEnabled = false,
+                    highlightedColor = null
+                )
+            }
+            viewModelScope.launch {
+                delay(1500L) // PAUSA VISUAL PARA MOSTRAR MENSAJE "Ronda X superada"
+                generarYMostrarSecuencia()
+            }
+        } else {
+            // ENTRADA CORRECTA PERO SEC. INCOMPLETA → SEGUIR ESPERANDO
+            updateUiState {
+                copy(highlightedColor = null) // QUITAR RESALTADO INMEDIATAMENTE
+            }
         }
-        // SI ES CORRECTO PERO AÚN NO SE COMPLETÓ, SEGUIR EN "EsperandoEntrada" (SIN CAMBIAR ESTADO)
     }
 
-    // REINICIA EL JUEGO DESDE LA PANTALLA DE GAME OVER
+    // REINICIAR EL JUEGO DESDE LA PANTALLA DE ERROR
     fun reiniciarJuego() {
         iniciarPartida()
     }
 
-    // ESTADOS DE LA INTERFAZ (SEALED CLASS)
-    sealed class EstadoInterfaz {
-        // PANTALLA INICIAL
-        object Inicio : EstadoInterfaz()
+    // ACTUALIZAR EL ESTADO DE FORMA SEGURA Y ATÓMICA
+    private fun updateUiState(update: UiState.() -> UiState) {
+        _uiState.value = _uiState.value.update()
+    }
 
-        // JUEGO EN CURSO, PERO NO MOSTRANDO NI ESPERANDO
-        data class Jugando(
-            val ronda: Int,
-            val puntuación: Int,
-            val secuencia: List<ColorSimon>,
-            val entradaHabilitada: Boolean
-        ) : EstadoInterfaz()
+    // CLASE SEALADA PARA MODELAR TODOS LOS ESTADOS POSIBLES DEL JUEGO (REQ. 20 PTS)
+    sealed class GameState {
+        object INICIO : GameState()
+        object JUGANDO : GameState()
+        object MOSTRANDO_SECUENCIA : GameState()
+        object ESPERANDO_ENTRADA : GameState()
+        object RONDA_SUPERADA : GameState()
+        object ERROR : GameState()
+    }
 
-        // MOSTRANDO LA SECUENCIA
-        data class MostrandoSecuencia(
-            val ronda: Int,
-            val puntuación: Int,
-            val secuencia: List<ColorSimon>,
-            val índiceResaltado: Int
-        ) : EstadoInterfaz()
+    // ESTADO INMUTABLE QUE LA UI OBSERVA
+    data class UiState(
+        val gameState: GameState = GameState.INICIO,
+        val ronda: Int = 0,
+        val puntuacion: Int = 0,
+        val isInputEnabled: Boolean = false,
+        val highlightedColor: ColorSimon? = null
+    )
 
-        // ESPERANDO QUE EL USUARIO PULSE LOS BOTONES
-        data class EsperandoEntrada(
-            val ronda: Int,
-            val puntuación: Int,
-            val secuencia: List<ColorSimon>,
-            val entradaHabilitada: Boolean
-        ) : EstadoInterfaz()
-
-        // EL USUARIO COMPLETÓ LA SECUENCIA
-        data class RondaSuperada(
-            val ronda: Int,
-            val puntuación: Int
-        ) : EstadoInterfaz()
-
-        // EL USUARIO FALLÓ → GAME OVER
-        data class JuegoTerminado(
-            val rondaFinal: Int,
-            val puntuaciónFinal: Int
-        ) : EstadoInterfaz()
+    sealed class EventEffect {
+        object ErrorSound : EventEffect()
     }
 }

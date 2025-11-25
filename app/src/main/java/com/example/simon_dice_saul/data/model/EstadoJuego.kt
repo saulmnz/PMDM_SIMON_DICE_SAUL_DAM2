@@ -1,4 +1,4 @@
-package com.example.simon_dice_saul.data.model;
+package com.example.simon_dice_saul.data.model
 
 enum class EstadoJuego {
     INICIO,

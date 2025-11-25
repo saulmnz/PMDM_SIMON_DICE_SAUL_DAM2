@@ -1,43 +1,42 @@
 package com.example.simon_dice_saul.domain
-import kotlin.random.Random
+
 import com.example.simon_dice_saul.data.model.ColorSimon
 
-// MOTOR DEL JUEGO -> LÓGICA
-class MotorJuegoSimón {
+class MotorJuegoSimon {
     private var numeroRonda = 1
-    private var puntuación = 0
+    private var puntuacion = 0
     private var secuencia = mutableListOf<ColorSimon>()
-    private var índiceEntradaUsuario = 0
+    private var indiceEntradaUsuario = 0
 
-    // ESTADO INTERNO QUE DEVUELVE EL MOTOR
+    // ESTADO INTERNO QUE DEVUELVE EL MOTOR (DATOS INMUTABLES)
     data class EstadoMotor(
         val rondaActual: Int,
-        val puntuaciónActual: Int,
+        val puntuacionActual: Int,
         val secuenciaActual: List<ColorSimon>,
-        val índiceComparación: Int,
+        val indiceComparacion: Int,
         val secuenciaCompletada: Boolean,
         val juegoPerdido: Boolean
     )
 
-    // MÉTODO PARA INICIAR UNA NUEVA PARTIDA DESDE CERO
+    // INICIAR UNA NUEVA PARTIDA DESDE CERO
     fun iniciarPartida(): EstadoMotor {
         numeroRonda = 1
-        puntuación = 0
+        puntuacion = 0
         secuencia.clear()
-        índiceEntradaUsuario = 0
+        indiceEntradaUsuario = 0
         return obtenerEstadoActual()
     }
 
-    // MÉTODO QUE AÑADE UN COLOR ALEATORIO A LA SECUENCIA (PARA LA SIGUIENTE RONDA)
-    fun añadirColorAleatorio(): EstadoMotor {
+    // AÑADIR UN COLOR ALEATORIO A LA SECUENCIA (PARA LA SIGUIENTE RONDA)
+    fun anadirColorAleatorio(): EstadoMotor {
         val colorAleatorio = ColorSimon.values().random()
         secuencia.add(colorAleatorio)
         return obtenerEstadoActual()
     }
 
-    // VALIDA LA ENTRADA DEL USUARIO Y DEVUELVE BOOLEANOS PARA VALIDAR LA SECUENCIA
+    // FUNCION QUE VALIDA SI EL COLOR QUE PUSO EL USUARIO ES EL CORRECTO, SI FALLA DEVUELVE JUEGO PERDIDO
     fun validarEntradaUsuario(colorPulsado: ColorSimon): Triple<Boolean, Boolean, Boolean> {
-        val colorEsperado = secuencia[índiceEntradaUsuario]
+        val colorEsperado = secuencia[indiceEntradaUsuario]
         val esCorrecto = colorPulsado == colorEsperado
 
         // SI FALLA, PARTIDA TERMINADA
@@ -45,42 +44,47 @@ class MotorJuegoSimón {
             return Triple(false, false, true)
         }
 
-        // AVANZAR ÍNDICE
-        índiceEntradaUsuario++
+        // AVANZAR ÍNDICE DE COMPARACIÓN
+        indiceEntradaUsuario++
 
-        // SI COMPLETÓ TODA LA SECUENCIA...
-        val secuenciaCompletada = índiceEntradaUsuario == secuencia.size
+        // SI SE COMPLETÓ TODA LA SECUENCIA...
+        val secuenciaCompletada = indiceEntradaUsuario == secuencia.size
         if (secuenciaCompletada) {
-            // AUMENTA LA RONDA Y PUNTUACIÓN
+            // AUMENTAR RONDA Y PUNTUACIÓN
             numeroRonda++
-            puntuación += 10 * numeroRonda
-            índiceEntradaUsuario = 0
+            puntuacion += 10 * numeroRonda
+            indiceEntradaUsuario = 0
         }
 
         return Triple(true, secuenciaCompletada, false)
     }
 
-    // OBTIENE EL ESTADO ACTUAL DEL MOTOR (PARA EL VIEWMODEL)
-    private fun obtenerEstadoActual(): EstadoMotor {
+    // OBTENER EL ESTADO ACTUAL DEL MOTOR (SIN MODIFICARLO)
+    fun obtenerEstadoActual(): EstadoMotor {
         return EstadoMotor(
             rondaActual = numeroRonda,
-            puntuaciónActual = puntuación,
+            puntuacionActual = puntuacion,
             secuenciaActual = secuencia.toList(),
-            índiceComparación = índiceEntradaUsuario,
-            secuenciaCompletada = índiceEntradaUsuario == secuencia.size,
+            indiceComparacion = indiceEntradaUsuario,
+            secuenciaCompletada = indiceEntradaUsuario == secuencia.size,
             juegoPerdido = false
         )
     }
 
-    // ESTADO CUANDO EL JUEGO HA TERMINADO POR ERROR
+    // OBTENER ESTADO CUANDO EL JUEGO HA TERMINADO POR ERROR
     fun obtenerEstadoJuegoTerminado(): EstadoMotor {
         return EstadoMotor(
             rondaActual = numeroRonda,
-            puntuaciónActual = puntuación,
+            puntuacionActual = puntuacion,
             secuenciaActual = secuencia.toList(),
-            índiceComparación = índiceEntradaUsuario,
+            indiceComparacion = indiceEntradaUsuario,
             secuenciaCompletada = false,
             juegoPerdido = true
         )
     }
+
+    // GETTERS PÚBLICOS (EVITAN ACCESO DIRECTO A VARIABLES INTERNAS)
+    fun obtenerPuntuacion(): Int = puntuacion
+    fun obtenerRonda(): Int = numeroRonda
+    fun obtenerSecuencia(): List<ColorSimon> = secuencia.toList()
 }
