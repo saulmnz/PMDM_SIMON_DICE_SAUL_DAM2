@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/texto_estado"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="¡SIMON DICE!"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/texto_ronda"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Ronda: 0"
+        android:textSize="18sp"
+        android:layout_marginBottom="8dp" />
+
+    <TextView
+        android:id="@+id/texto_puntuacion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Puntuacion: 0"
+        android:textSize="18sp"
+        android:layout_marginBottom="24dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="16dp">
+
+        <Button
+            android:id="@+id/boton_rojo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:text="ROJO"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/boton_verde"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginStart="16dp"
+            android:backgroundTint="@android:color/holo_green_dark"
+            android:text="VERDE"
+            android:textColor="@android:color/white" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center">
+
+        <Button
+            android:id="@+id/boton_azul"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:backgroundTint="@android:color/holo_blue_dark"
+            android:text="AZUL"
+            android:textColor="@android:color/white" />
+
+        <Button
+            android:id="@+id/boton_amarillo"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:layout_marginStart="16dp"
+            android:backgroundTint="@android:color/holo_orange_dark"
+            android:text="AMARILLO"
+            android:textColor="@android:color/black" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/boton_iniciar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="INICIAR"
+        android:layout_marginTop="24dp"
+        android:minWidth="120dp" />
+
+    <Button
+        android:id="@+id/boton_reiniciar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="REINICIAR"
+        android:layout_marginTop="16dp"
+        android:minWidth="120dp"
+        android:visibility="gone" />
+
+</LinearLayout>

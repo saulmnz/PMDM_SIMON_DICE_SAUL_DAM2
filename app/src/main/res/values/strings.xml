@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">SIMON_DICE_SAUL</string>
+    <string name="ronda_label">Ronda: %1$d</string>
+    <string name="puntuacion_label">Puntuación: %1$d</string>
+    <string name="status_inicio">¡SIMON DICE!</string>
+    <string name="status_jugando">Jugando…</string>
+    <string name="status_mostrando_secuencia">Observa la secuencia…</string>
+    <string name="status_esperando_entrada">¡Tu turno!</string>
+    <string name="status_ronda_superada">¡Ronda %1$d superada!</string>
+    <string name="status_error">¡JUEGO TERMINADO!</string>
+    <string name="status_ganado">¡GANASTE!</string>
+    <string name="btn_iniciar">INICIAR</string>
+    <string name="btn_reiniciar">REINICIAR</string>
+</resources>
