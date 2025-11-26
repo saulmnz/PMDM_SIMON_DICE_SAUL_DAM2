@@ -138,7 +138,7 @@ fun SimonDiceScreen(viewModel: ModeloVistaSimon) {
         // Header con título y puntuación
         // Mensaje de estado del juego ( EL CUAL CONTIENE UNA ANIMACIÓN DE FLUIDEZ ( CAMBIA DE MANERA FLUIDA ENTRE "JUEGO TERMINADO", "OBSERVA LA SECUENCIA" Y "TU TURNO" )) 
         // Botones de control (Iniciar/Reiniciar)
-        // Grid de colores con animaciones
+        // Grid de colores con animaciones ( EFECTO REBOTE O ZOOM CUANDO SE MUESTRA LA SECUENCIA EN CADA BOTÓN )
     }
 }
 ```
