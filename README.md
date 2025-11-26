@@ -6,7 +6,8 @@
 
 - ***ESTE PROYECTO ES UNA IMPLEMENTACIÓN DEL JUEGO CLÁSICO "SIMÓN DICE" PARA ANDROID, DESARROLLADO EN KOTLIN CON ARQUITECTURA MVVM. EL JUEGO CONSISTE EN MEMORIZAR Y REPETIR SECUENCIAS DE COLORES QUE SE VAN HACIENDO CADA VEZ MÁS LARGAS Y COMPLEJAS.***
 
-> [!NOTE] **Antes de empezar a codificar el programa he realizado un diagrama de flujo y estado para comprender de manera profunda la lógica que va a seguir🤖...**
+> [!NOTE]
+> **Antes de empezar a codificar el programa he realizado un diagrama de flujo y estado para comprender de manera profunda la lógica que va a seguir🤖...**
 
 ---
 
@@ -81,39 +82,105 @@ flowchart TD
 
 ---
 
-## CARACTERÍSTICAS PRINCIPALES DEL PROYECTO 🪽
-
-- **INTERFAZ MODERNA DESARROLLADA CON JETPACK COMPOSE**
-- **ARQUITECTURA MVVM PARA SEPARACIÓN CLARA DE RESPONSABILIDADES**
-- **GESTIÓN DE ESTADO CON FLOWS**
-- **TESTING COMPLETO CON CORRUTINAS**
-- **ANIMACIONES Y FEEDBACK VISUAL**
-
----
-
 ## ESTRUCTURA DEL PROYECTO 🏗️
 
 <img width="368" height="441" alt="image" src="https://github.com/user-attachments/assets/b2c9cf47-0fd1-49ac-8eec-cefce9c29516" />
 
 ### MODEL (MODELO DE DATOS Y DOMINIO) 🦕
 - **ColorSimon: ENUM QUE REPRESENTA LOS COLORES DEL JUEGO**
-- **MotorJuegoSimon: CLASE QUE CONTIENE TODA LA LÓGICA DEL JUEGO**
-- **GESTIÓN DE SECUENCIAS, PUNTUACIÓN Y ESTADOS DEL JUEGO**
+  
+```kotlin
+// FASES DEL JUEGO
+enum class EstadoJuego {
+    INICIO, JUGANDO, MOSTRANDO_SECUENCIA, ESPERANDO_ENTRADA, 
+    VERIFICANDO_ENTRADA, RONDA_SUPERADA, JUEGO_TERMINADO
+}
+
+// ENUM QUE REPRESENTA LOS 4 COLORES DEL JUEGO CON IDENTIFICADORES ÚNICOS
+enum class ColorSimon(val identificador: Int) {
+    ROJO(0), VERDE(1), AZUL(2), AMARILLO(3)
+}
+```
+
+- **MotorJuegoSimon: CLASE QUE CONTIENE TODA LA LÓGICA DEL JUEGO, GESTIÓN DE SECUENCIAS, PUNTUACIÓN Y ESTADOS DEL JUEGO**
+  
+```kotlin
+// CLASE QUE CONTIENE TODA LA LÓGICA DEL JUEGO
+class MotorJuegoSimon {
+    // MÉTODOS:
+    // - iniciarPartida(): Reinicia el juego al estado inicial
+    // - anadirColorAleatorio(): Añade nuevo color a la secuencia
+    // - validarEntradaUsuario(): Comprueba si el input es correcto
+    // - obtenerEstadoActual(): Devuelve estado inmutable del juego
+}
+```
 
 ---
 
-### VIEW (INTERFAZ DE USUARIO) 🤹
+### VIEW (INTERFAZ DE USUARIO) 🤹 
+
 - **SimonDiceScreen: PANTALLA PRINCIPAL CON JETPACK COMPOSE**
-- **INTERFAZ REACTIVA QUE OBSERVA LOS CAMBIOS DE ESTADO**
+- **INTERFAZ QUE OBSERVA LOS CAMBIOS DE ESTADO**
 - **BOTONES DE COLORES Y ANIMACIONES**
 
+```kotlin
+@Composable
+fun SimonDiceScreen(viewModel: ModeloVistaSimon) {
+    // OBSERVA EL ESTADO DEL VIEWMODEL
+    val uiState = viewModel.uiState.collectAsState().value
+    
+    // USA LaunchedEffect PARA EVENTOS DE UN SOLO USO ( PARA AÑADIR LAUNCHEFFECT AL PROYECTO PUSE UN PRINTLN COMO SI FUESE UN SONIDO DE ERROR ) 
+    LaunchedEffect(viewModel.eventEffect) {
+    }
+    
+    // COMPOSICIÓN DE UI CON COMPONENTES REUTILIZABLES
+    Column {
+        // Header con título y puntuación
+        // Mensaje de estado del juego ( EL CUAL CONTIENE UNA ANIMACIÓN DE FLUIDEZ ( CAMBIA DE MANERA FLUIDA ENTRE "JUEGO TERMINADO", "OBSERVA LA SECUENCIA" Y "TU TURNO" )) 
+        // Botones de control (Iniciar/Reiniciar)
+        // Grid de colores con animaciones
+    }
+}
+```
+
+
 ---
 
-### VIEWMODEL (GESTIÓN DE ESTADO) 🦫
-- **ModeloVistaSimon: GESTIONA EL ESTADO DE LA UI Y COORDINA CON EL MOTOR DE JUEGO**
-- **USO DE StateFlow PARA ESTADO REACTIVO**
-- **MANEJO DE CORRUTINAS PARA ANIMACIONES Y LÓGICA TEMPORAL**
+### VIEWMODEL (GESTIÓN DE ESTADO) 🦫 
 
+- **ModeloVistaSimon: GESTIONA EL ESTADO DE LA UI Y COORDINA CON EL MOTOR DE JUEGO**
+- **USO DE StateFlow PARA EL MANEJO DE ESTADOS**
+- **MANEJO DE CORRUTINAS PARA ANIMACIONES Y LÓGICA**
+  
+```kotlin
+class ModeloVistaSimon : ViewModel() {
+    // ESTADO REACTIVO CON StateFlow
+    private val _uiState = MutableStateFlow(UiState())
+    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+    
+    // GESTIÓN DE EVENTOS DE UN SOLO USO
+    private val _eventEffect = MutableStateFlow<EventEffect?>(null)
+    val eventEffect: EventEffect? get() = _eventEffect.value
+    
+    // SEALED CLASS PARA ESTADOS DEL JUEGO
+    sealed class GameState {
+        object INICIO : GameState()
+        object MOSTRANDO_SECUENCIA : GameState()
+        object ESPERANDO_ENTRADA : GameState()
+        object RONDA_SUPERADA : GameState()
+        object ERROR : GameState()
+    }
+    
+    // FUNCIONES:
+    // - iniciarPartida(): Inicia nueva partida
+    // - alPulsarColor(): Maneja input del usuario
+    // - reiniciarJuego(): Reinicia desde pantalla de error
+}
+```
+
+
+
+<img width="394" height="524" alt="image" src="https://github.com/user-attachments/assets/944981aa-6bf0-40f3-9868-a7374ee9783c" />
 
 
 
