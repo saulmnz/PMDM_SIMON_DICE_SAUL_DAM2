@@ -185,20 +185,20 @@ class ModeloVistaSimon : ViewModel() {
 > [!NOTE]
 > **AL SER CAPTURAS NO SE APRECIA EL EFECTO DE FLUIDEZ QUE AÑADÍ PARA LAS TRANSICCIONES DE TEXTO, SI SE EJECUTASE EL PROGRAMA, SE PODRÍA APRECIAR COMO "TU TURNO", "JUEGO TERMINADO", "OBSERVA LA SECUENCIA" SE INTERCAMBIAN EN EL MISMO LAYOUT CON UN EFECTO FLUIDO ( COMO DE MÁQUINA DE ESCRIBIR )**
 
-> [!ADVICE]
+> [!WARNING]
 > **COMO SE VE LA INTERFAZ UNA VEZ ARRANCAS EL PROGRAMA**
-<img width="456" height="538" alt="image" src="https://github.com/user-attachments/assets/dfb7e09d-5008-4fe3-8168-b98daf44176f" />
+<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/dfb7e09d-5008-4fe3-8168-b98daf44176f" />
 
-> [!ADVICE]
+> [!WARNING]
 > **COMO SE VE LA INTERFAZ MIENTRAS OBSERVAS LA SECUENCIA**
-<img width="355" height="503" alt="image" src="https://github.com/user-attachments/assets/b3bd31ff-bc06-4e15-96fd-dc182a7855a2" />
+<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/b3bd31ff-bc06-4e15-96fd-dc182a7855a2" />
 
 
-> [!ADVICE]
+> [!WARNING]
 > **COMO SE VE LA INTERFAZ UNA VEZ CLICAS INICIAR**
-<img width="353" height="500" alt="image" src="https://github.com/user-attachments/assets/bdfa178f-878a-4727-8852-4290b13abb53" />
+<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/bdfa178f-878a-4727-8852-4290b13abb53" />
 
-> [!ADVICE]
+> [!WARNING]
 > **COMO SE VE LA INTERFAZ UNA VEZ FALLAS LA SECUENCIA**
 <img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/944981aa-6bf0-40f3-9868-a7374ee9783c" />
 
