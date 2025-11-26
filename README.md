@@ -84,6 +84,9 @@ flowchart TD
 
 ## ESTRUCTURA DEL PROYECTO 🏗️
 
+> [!WARNING]
+> ***LOS TESTS UNITARIOS ESTÁN EN `SIMON_DICE_SAUL\app\src\test\java\com\example\simon_dice_saul\presentation\viewmodel\ModeloVistaSimonTest.kt`***
+
 <img width="368" height="441" alt="image" src="https://github.com/user-attachments/assets/b2c9cf47-0fd1-49ac-8eec-cefce9c29516" />
 
 ### MODEL (MODELO DE DATOS Y DOMINIO) 🦕
