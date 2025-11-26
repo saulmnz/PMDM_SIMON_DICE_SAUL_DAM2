@@ -178,9 +178,11 @@ class ModeloVistaSimon : ViewModel() {
 }
 ```
 
+<br>
 
+### COMO SE VE EL PROGRAMA AL EJECUTAR 👀
 
-<img width="394" height="524" alt="image" src="https://github.com/user-attachments/assets/944981aa-6bf0-40f3-9868-a7374ee9783c" />
+<img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/944981aa-6bf0-40f3-9868-a7374ee9783c" />
 
 
 
