@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.simon_dice_saul.presentation.ui.SimonDiceScreen
 import com.example.simon_dice_saul.presentation.viewmodel.ModeloVistaSimon
 import com.example.simon_dice_saul.ui.theme.SIMON_DICE_SAULTheme
+import android.util.Log  // AÑADIR ESTO
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -21,9 +22,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    SimonDiceScreen(
-                        viewModel = viewModel()
+                    // CREAR VIEWMODEL CON UNA FACTORY PERSONALIZADA
+                    val viewModel: ModeloVistaSimon = viewModel(
+                        factory = object : androidx.lifecycle.ViewModelProvider.Factory {
+                            @Suppress("UNCHECKED_CAST")
+                            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                                // PASAMOS LA APLICACIÓN ACTUAL AL CONSTRUCTOR DEL VIEWMODEL
+                                return ModeloVistaSimon(this@MainActivity.application) as T
+                            }
+                        }
                     )
+                    SimonDiceScreen(viewModel = viewModel)
                 }
             }
         }
