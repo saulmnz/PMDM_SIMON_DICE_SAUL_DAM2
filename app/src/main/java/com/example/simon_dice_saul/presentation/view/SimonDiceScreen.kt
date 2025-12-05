@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.sp
 import com.example.simon_dice_saul.R
 import com.example.simon_dice_saul.data.model.ColorSimon
 import com.example.simon_dice_saul.presentation.viewmodel.ModeloVistaSimon
+import java.text.SimpleDateFormat  // ¡CORRECTO!
+import java.util.*
 
 @Composable
 fun SimonDiceScreen(
@@ -28,6 +31,13 @@ fun SimonDiceScreen(
     // OBSERVAR EL ESTADO ACTUAL DE LA UI
     val uiState = viewModel.uiState.collectAsState().value
     val eventEffect = viewModel.eventEffect
+    // OBSERVAR EL ESTADO DEL RÉCORD
+    val estadoRecord = viewModel.estadoRecord.collectAsState().value
+
+    // DEBUG: Mostrar fecha actual para verificación
+    val fechaActual = remember {
+        SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())  // ¡MM no NM!
+    }
 
     LaunchedEffect(eventEffect) {
         if (eventEffect is ModeloVistaSimon.EventEffect.ErrorSound) {
@@ -53,6 +63,40 @@ fun SimonDiceScreen(
             ),
             modifier = Modifier.padding(bottom = 16.dp)
         )
+
+        // MOSTRAR RÉCORD ACTUAL SI EXISTE
+        if (estadoRecord != null) {
+            Column(
+                modifier = Modifier.padding(bottom = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "RÉCORD: Ronda ${estadoRecord.rondaMasAlta}",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFF1976D2)
+                    ),
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "Fecha: ${estadoRecord.fecha}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = Color.Gray
+                    ),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        } else {
+            Text(
+                text = "Sin récord aún",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = Color.LightGray,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic
+                ),
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
 
         // ESTADO DEL JUEGO (RONDA / PUNTUACIÓN) — EN FILA
         Row(
@@ -116,7 +160,7 @@ fun SimonDiceScreen(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.width(120.dp)
             ) {
-                Text(stringResource(R.string.btn_iniciar), fontSize = 16.sp)
+                Text(stringResource(R.string.btn_iniciar), fontSize = 14.sp)
             }
 
             Button(
@@ -125,7 +169,7 @@ fun SimonDiceScreen(
                 shape = MaterialTheme.shapes.medium,
                 modifier = Modifier.width(120.dp)
             ) {
-                Text(stringResource(R.string.btn_reiniciar), fontSize = 16.sp)
+                Text(stringResource(R.string.btn_reiniciar), fontSize = 14.sp)
             }
         }
 
@@ -175,17 +219,15 @@ private fun SimonColorCircle(
     // COLOR DEL TEXTO: AHORA TODOS EN BLANCO → COHERENCIA VISUAL
     val textColor = Color.White
 
-    // ¿ESTÁ RESALTADO? → AUMENTAR TAMAÑO Y SOMBRILLA (OPCIONAL, SI TE GUSTA)
+    // ¿ESTÁ RESALTADO? → AUMENTAR TAMAÑO
     val isSelected = uiState.highlightedColor == color
     val scale = if (isSelected) 1.1f else 1.0f
-    val elevation = if (isSelected) 8.dp else 4.dp
 
     // BOX PERSONALIZADO — SIN BOTÓN, SÓLO CLICKABLE
     Box(
         modifier = Modifier
             .size(120.dp)
             .scale(scale)
-            //.shadow(elevation)
             .background(backgroundColor)
             .clickable(enabled = uiState.isInputEnabled) { onClick(color) },
         contentAlignment = Alignment.Center
