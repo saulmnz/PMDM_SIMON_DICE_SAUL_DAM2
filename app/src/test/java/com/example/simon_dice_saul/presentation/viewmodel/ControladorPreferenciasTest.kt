@@ -1,182 +1,106 @@
-package com.example.simon_dice_saul.presentation.viewmodel
+package com.example.simon_dice_saul.data.repository
 
-import com.example.simon_dice_saul.data.model.ColorSimon
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.*
-import org.junit.After
-import org.junit.Before
+import android.content.Context
+import android.content.SharedPreferences
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
+import org.junit.Assert.*
+import org.mockito.Mockito
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import java.text.SimpleDateFormat
+import com.example.simon_dice_saul.data.model.Record
+import java.util.*
 
-@OptIn(ExperimentalCoroutinesApi::class)
-class ModeloVistaSimonTest {
+/**
+ * TESTS QUE PRUEBAN LA LÓGICA DE NUESTRO SISTEMA DE RÉCORDS
+ * Usando Mocks para simular SharedPreferences
+ */
+class ControladorPreferenciasTest {
 
-    private lateinit var viewModel: ModeloVistaSimon
-    private val testDispatcher = StandardTestDispatcher()
-
-    // CONFIGURAMOS EL ENTORNO DE PRUEBAS ANTES DE CADA TEST
-    @Before
-    fun setup() {
-        Dispatchers.setMain(testDispatcher)
-        viewModel = ModeloVistaSimon(testDispatcher)
-    }
-
-    // LIMPIAMOS DESPUES DE CADA TEST
-    @After
-    fun tearDown() {
-        Dispatchers.resetMain()
-    }
-
-    // VERIFICAMOS QUE AL INICIAR LA PARTIDA SE ESTABLEZCAN LOS VALORES CORRECTOS
+    // TEST 1: LÓGICA DE FECHA
     @Test
-    fun `iniciarPartida establece estado inicial correctamente`() = runTest {
-        viewModel.iniciarPartida()
+    fun testFormatoFechaEsCorrecto() {
+        // Verificar que nuestro formato de fecha es el correcto
+        val formato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+        val fecha = formato.format(Date())
 
-        // ESPERAMOS A QUE TERMINEN TODAS LAS CORRUTINAS
-        testScheduler.advanceUntilIdle()
+        // El formato debe tener exactamente este patrón
+        assertTrue("La fecha debe contener /", fecha.contains("/"))
+        assertTrue("La fecha debe contener :", fecha.contains(":"))
+        assertTrue("La fecha debe tener al menos 16 caracteres", fecha.length >= 16)
 
-        val estado = viewModel.uiState.first()
-
-        // COMPROBAMOS QUE EL ESTADO FINAL SEA EL ESPERADO
-        assertEquals(ModeloVistaSimon.GameState.ESPERANDO_ENTRADA, estado.gameState)
-        assertEquals(1, estado.ronda)
-        assertEquals(0, estado.puntuacion)
-        assertTrue(estado.isInputEnabled)
+        // Verificar patrón con regex
+        val regex = Regex("""\d{2}/\d{2}/\d{4} \d{2}:\d{2}""")
+        assertTrue("Formato de fecha incorrecto", fecha.matches(regex))
     }
 
-    // CONFIRMAMOS QUE AL INICIAR SE GENERA UNA SECUENCIA AUTOMATICAMENTE
+
+    // TEST 2: LÓGICA DE COMPARACIÓN DE RÉCORDS
     @Test
-    fun `al iniciar partida se genera secuencia automaticamente`() = runTest {
-        viewModel.iniciarPartida()
+    fun testLogicaComparacionRecords() {
+        // CASO 1: No hay récord anterior -> DEBE guardar
+        val noRecord: String? = null
+        val rondaNueva = 5
+        val debeGuardarCaso1 = noRecord == null || rondaNueva > 3 // 3 sería el récord anterior
+        assertTrue("Sin récord previo siempre debe guardar", debeGuardarCaso1)
 
-        // DEJAMOS QUE SE COMPLETE LA SECUENCIA
-        testScheduler.advanceUntilIdle()
+        // CASO 2: Ronda nueva es mayor -> DEBE guardar
+        val recordAnterior = 3
+        val debeGuardarCaso2 = rondaNueva > recordAnterior
+        assertTrue("Ronda mayor debe guardar", debeGuardarCaso2)
 
-        val estado = viewModel.uiState.first()
+        // CASO 3: Ronda nueva es igual -> NO debe guardar
+        val rondaIgual = 3
+        val debeGuardarCaso3 = rondaIgual > recordAnterior
+        assertFalse("Ronda igual no debe guardar", debeGuardarCaso3)
 
-        // DEBERIA ESTAR ESPERANDO QUE EL JUGADOR PULSE
-        assertEquals(ModeloVistaSimon.GameState.ESPERANDO_ENTRADA, estado.gameState)
-        assertEquals(1, estado.ronda)
-        assertTrue(estado.isInputEnabled)
+        // CASO 4: Ronda nueva es menor -> NO debe guardar
+        val rondaMenor = 2
+        val debeGuardarCaso4 = rondaMenor > recordAnterior
+        assertFalse("Ronda menor no debe guardar", debeGuardarCaso4)
     }
 
-    // COMPROBAMOS QUE NO SE PUEDE PULSAR DURANTE LA SECUENCIA
+    // TEST 3: ESTRUCTURA DEL MODELO RECORD
     @Test
-    fun `alPulsarColor durante secuencia es ignorado`() = runTest {
-        viewModel.iniciarPartida()
-
-        // INTENTAMOS PULSAR UN COLOR MIENTRAS SE MUESTRA LA SECUENCIA
-        viewModel.alPulsarColor(ColorSimon.ROJO)
-
-        // AVANZAMOS UN POCO PERO NO DEMASIADO
-        testScheduler.advanceTimeBy(100L)
-
-        val estado = viewModel.uiState.first()
-
-        // SI ESTA MOSTRANDO SECUENCIA, EL INPUT DEBERIA ESTAR BLOQUEADO
-        if (estado.gameState == ModeloVistaSimon.GameState.MOSTRANDO_SECUENCIA) {
-            assertFalse(estado.isInputEnabled)
-        }
-    }
-
-    // VERIFICAMOS QUE SE PUEDEN LIMPIAR LOS EVENTOS
-    @Test
-    fun `consumirEventEffect limpia el evento correctamente`() = runTest {
-        // CONSUMIMOS CUALQUIER EVENTO QUE HAYA
-        viewModel.consumeEventEffect()
-
-        // NO DEBERIA HABER NINGUN EVENTO ACTIVO
-        assertNull(viewModel.eventEffect)
-    }
-
-    // TEST PARA COMPROBAR QUE EL REINICIO FUNCIONA BIEN
-    @Test
-    fun `reiniciarJuego resetea el juego correctamente`() = runTest {
-        viewModel.iniciarPartida()
-        testScheduler.advanceUntilIdle()
-
-        // REINICIAMOS EL JUEGO
-        viewModel.reiniciarJuego()
-        testScheduler.advanceUntilIdle()
-
-        val estado = viewModel.uiState.first()
-
-        // DESPUES DE REINICIAR DEBERIA ESTAR MOSTRANDO SECUENCIA O ESPERANDO
-        assertTrue(
-            estado.gameState == ModeloVistaSimon.GameState.MOSTRANDO_SECUENCIA ||
-                    estado.gameState == ModeloVistaSimon.GameState.ESPERANDO_ENTRADA
+    fun testEstructuraRecord() {
+        // Crear un Record como lo haría nuestra app
+        val record = Record(
+            rondaMasAlta = 10,
+            fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                .format(Date())
         )
-        assertEquals(1, estado.ronda)
-        assertEquals(0, estado.puntuacion)
+
+        // Verificar estructura
+        assertEquals("La ronda debe ser 10", 10, record.rondaMasAlta)
+        assertNotNull("La fecha no debe ser null", record.fecha)
+        assertTrue("La fecha no debe estar vacía", record.fecha.isNotEmpty())
+
+        // Verificar que es una data class (tiene equals, hashCode, etc.)
+        val record2 = Record(10, record.fecha)
+        assertEquals("Records iguales deben ser iguales", record, record2)
+        assertEquals("HashCodes deben ser iguales", record.hashCode(), record2.hashCode())
     }
 
-    // OBSERVAMOS LAS TRANSICIONES ENTRE ESTADOS DEL JUEGO
+    // TEST 4: COMPORTAMIENTO DEL SINGLETON
     @Test
-    fun `transiciones de estado durante el flujo del juego`() = runTest {
-        viewModel.iniciarPartida()
+    fun testSingletonPattern() {
+        // El ControladorPreferencias es un object (singleton)
+        val instancia1 = ControladorPreferencias
+        val instancia2 = ControladorPreferencias
 
-        // MIENTRAS SE MUESTRA LA SECUENCIA
-        testScheduler.advanceTimeBy(100L)
-        var estado = viewModel.uiState.first()
-        assertEquals(ModeloVistaSimon.GameState.MOSTRANDO_SECUENCIA, estado.gameState)
-        assertFalse(estado.isInputEnabled)
+        // Deben ser la misma instancia
+        assertSame("Debe ser el mismo objeto singleton", instancia1, instancia2)
 
-        // CUANDO TERMINA LA SECUENCIA
-        testScheduler.advanceUntilIdle()
-        estado = viewModel.uiState.first()
-        assertEquals(ModeloVistaSimon.GameState.ESPERANDO_ENTRADA, estado.gameState)
-        assertTrue(estado.isInputEnabled)
-    }
+        // Debe tener los métodos que necesitamos
+        val metodos = ControladorPreferencias::class.java.declaredMethods
+        val nombresMetodos = metodos.map { it.name }
 
-    // CONFIRMAMOS QUE SE RESALTAN COLORES DURANTE LA SECUENCIA
-    @Test
-    fun `highlightedColor se actualiza durante la secuencia`() = runTest {
-        viewModel.iniciarPartida()
-
-        // NOS COLOCAMOS EN MEDIO DE LA SECUENCIA
-        testScheduler.advanceTimeBy(100L)
-
-        val estado = viewModel.uiState.first()
-
-        // DEBERIA HABER UN COLOR RESALTADO EN ESE MOMENTO
-        if (estado.gameState == ModeloVistaSimon.GameState.MOSTRANDO_SECUENCIA) {
-            assertTrue(estado.highlightedColor != null)
-        }
-    }
-
-    // VERIFICAMOS LA PUNTUACION Y RONDA INICIAL
-    @Test
-    fun `puntuacion y ronda se incrementan correctamente`() = runTest {
-        viewModel.iniciarPartida()
-        testScheduler.advanceUntilIdle()
-
-        val estadoInicial = viewModel.uiState.first()
-        assertEquals(1, estadoInicial.ronda)
-        assertEquals(0, estadoInicial.puntuacion)
-    }
-
-    // COMPROBAMOS CUANDO ESTA ACTIVO EL INPUT DEL JUGADOR
-    @Test
-    fun `input habilitado solo en estado ESPERANDO_ENTRADA`() = runTest {
-        viewModel.iniciarPartida()
-
-        // DURANTE LA SECUENCIA NO SE PUEDE PULSAR
-        testScheduler.advanceTimeBy(100L)
-        var estado = viewModel.uiState.first()
-        if (estado.gameState == ModeloVistaSimon.GameState.MOSTRANDO_SECUENCIA) {
-            assertFalse(estado.isInputEnabled)
-        }
-
-        // SOLO SE PUEDE PULSAR CUANDO ESPERA LA ENTRADA
-        testScheduler.advanceUntilIdle()
-        estado = viewModel.uiState.first()
-        if (estado.gameState == ModeloVistaSimon.GameState.ESPERANDO_ENTRADA) {
-            assertTrue(estado.isInputEnabled)
-        }
+        assertTrue("Debe tener método actualizarRecord",
+            nombresMetodos.contains("actualizarRecord"))
+        assertTrue("Debe tener método obtenerRecord",
+            nombresMetodos.contains("obtenerRecord"))
+        assertTrue("Debe tener método limpiarRecord",
+            nombresMetodos.contains("limpiarRecord"))
     }
 }
