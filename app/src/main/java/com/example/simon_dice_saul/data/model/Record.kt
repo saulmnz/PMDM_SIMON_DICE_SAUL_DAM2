@@ -7,5 +7,5 @@ package com.example.simon_dice_saul.data.model
  */
 data class Record(
     val rondaMasAlta: Int,
-    val fecha: String  // CAMBIO: String en lugar de Date
+    val fecha: String
 )
