@@ -208,4 +208,13 @@ class ModeloVistaSimon : ViewModel() {
 <img width="500" height="650" alt="image" src="https://github.com/user-attachments/assets/944981aa-6bf0-40f3-9868-a7374ee9783c" />
 
 
+### IMPLEMENTACIÓN ROOM 🦜
+
+> ***Se migró el almacenamiento del récord desde SharedPreferences a una base de datos local con Room, manteniendo la funcionalidad y la experiencia de usuario.***
+
+- Misma lógica de juego
+- UI sin cambios
+- Persistencia más robusta y escalable
+
+> ***Se implmenetaron dependencias de ROOM ( room-runtime, room-compiler ), clase Record como @Entity, DAO del record para operaciones básicas ( get, insert, clear ), base de datos AppDatabase ( singleton implícito ), integración directa en ModeloVistaSimón y verificación en MainActivity***
 
