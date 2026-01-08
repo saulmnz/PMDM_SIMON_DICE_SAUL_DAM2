@@ -1,4 +1,3 @@
-// 📁 com.example.simon_dice_saul.data.model.Record.kt
 package com.example.simon_dice_saul.data.model
 
 import androidx.room.Entity

@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔹 Instancia de Room (como en el ejemplo del profe)
+        // Instancia de Room
         val db = Room.databaseBuilder(
             applicationContext,
             AppDatabase::class.java,
@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
         val recordDao = db.recordDao()
 
-        // 🔹 Prueba rápida (como en el ejemplo)
+        // Prueba rápida
         val record = recordDao.getRecord()
         Log.d("ROOMTEST", "Récord inicial: $record")
 

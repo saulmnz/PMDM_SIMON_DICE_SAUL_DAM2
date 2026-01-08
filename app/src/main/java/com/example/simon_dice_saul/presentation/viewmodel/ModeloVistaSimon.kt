@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.room.Room
-import com.example.simon_dice_saul.data.database.AppDatabase
+import com.example.simon_dice_saul.AppDatabase
 import com.example.simon_dice_saul.data.model.Record
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,12 +53,11 @@ class ModeloVistaSimon(
     private var estaMostrandoSecuencia = false
 
     init {
-        // 🔹 Cargar récord desde Room (no desde SharedPreferences)
+        // Cargar récord desde Room
         _estadoRecord.value = recordDao.getRecord()
     }
 
     private fun cargarRecord() {
-        // Ya no se usa → el init lo hace directamente
     }
 
     fun iniciarPartida() {

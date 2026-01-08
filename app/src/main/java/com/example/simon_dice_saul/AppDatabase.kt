@@ -4,8 +4,9 @@ package com.example.simon_dice_saul
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
-import com.example.simon_dice_saul.data.dao.RecordDao
 import com.example.simon_dice_saul.data.model.Record
+import com.example.simon_dice_saul.RecordDao
+
 
 @Database(
     entities = [Record::class],

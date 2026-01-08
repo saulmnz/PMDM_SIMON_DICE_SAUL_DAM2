@@ -1,6 +1,4 @@
 package com.example.simon_dice_saul
-// 📁 com.example.simon_dice_saul.data.dao.RecordDao.kt
-
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
