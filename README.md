@@ -218,3 +218,102 @@ class ModeloVistaSimon : ViewModel() {
 
 > ***Se implmenetaron dependencias de ROOM ( room-runtime, room-compiler ), clase Record como @Entity, DAO del record para operaciones básicas ( get, insert, clear ), base de datos AppDatabase ( singleton implícito ), integración directa en ModeloVistaSimón y verificación en MainActivity***
 
+```kotlin
+package com.example.simon_dice_saul.data.dao
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import com.example.simon_dice_saul.data.model.Record
+
+@Dao
+interface RecordDao {
+
+    @Query("SELECT * FROM record_table WHERE id = 0")
+    fun getRecord(): Record?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun insertRecord(record: Record)
+
+    @Query("DELETE FROM record_table")
+    fun clearRecord()
+}
+```
+
+---
+
+```kotlin
+package com.example.simon_dice_saul.data.database
+
+import androidx.room.Database
+import androidx.room.RoomDatabase
+import com.example.simon_dice_saul.data.dao.RecordDao
+import com.example.simon_dice_saul.data.model.Record
+
+@Database(
+    entities = [Record::class],
+    version = 1,
+    exportSchema = false
+)
+abstract class AppDatabase : RoomDatabase() {
+    abstract fun recordDao(): RecordDao
+}
+```
+
+---
+
+```kotlin
+package com.example.simon_dice_saul
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.room.Room
+import com.example.simon_dice_saul.data.database.AppDatabase
+import com.example.simon_dice_saul.data.model.Record
+import com.example.simon_dice_saul.presentation.ui.SimonDiceScreen
+import com.example.simon_dice_saul.presentation.viewmodel.ModeloVistaSimon
+import com.example.simon_dice_saul.ui.theme.SIMON_DICE_SAULTheme
+import java.text.SimpleDateFormat
+import java.util.*
+
+class MainActivity : ComponentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Opcional: prueba inicial de Room (puedes borrar este bloque si no lo necesitas)
+        val db = Room.databaseBuilder(
+            applicationContext,
+            AppDatabase::class.java,
+            "simon_dice_db"
+        ).allowMainThreadQueries().build()
+
+        val dao = db.recordDao()
+        if (dao.getRecord() == null) {
+            val fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
+            dao.insertRecord(Record(rondaMasAlta = 0, fecha = fecha))
+        }
+
+        setContent {
+            SIMON_DICE_SAULTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    val viewModel: ModeloVistaSimon = viewModel {
+                        ModeloVistaSimon(this@MainActivity.application)
+                    }
+                    SimonDiceScreen(viewModel = viewModel)
+                }
+            }
+        }
+    }
+}
+```
