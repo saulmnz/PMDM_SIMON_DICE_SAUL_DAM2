@@ -218,3 +218,145 @@ class ModeloVistaSimon : ViewModel() {
 
 > ***Se implmenetaron dependencias de ROOM ( room-runtime, room-compiler ), clase Record como @Entity, DAO del record para operaciones básicas ( get, insert, clear ), base de datos AppDatabase ( singleton implícito ), integración directa en ModeloVistaSimón y verificación en MainActivity***
 
+---
+
+### IMPLMENTACIÓN MONGODB (USO DE COPILOT) 🦢
+
+### Issue #1: Configurar cuenta y base de datos en MongoDB Atlas
+**Descripción**:
+Crear una cuenta gratuita en [MongoDB Atlas](https://www.mongodb.com/atlas), crear un proyecto llamado `simon_dice`, una base de datos `simon_dice`, y una colección `records`. Habilitar acceso desde cualquier IP (0.0.0.0/0) para desarrollo y crear un usuario con contraseña. Guardar la cadena de conexión y el App ID en `local.properties` (no commitear credenciales).
+
+**Checklist**:
+- [ ] Cuenta de MongoDB Atlas creada
+- [ ] Proyecto `simon_dice` creado
+- [ ] Base de datos `simon_dice` con colección `records` configurada
+- [ ] Usuario con permisos de lectura/escritura creado
+- [ ] Cadena de conexión y App ID guardados de forma segura
+
+**Etiquetas**: `enhancement`, `database`, `mongodb`, `setup`
+
+---
+
+### Issue #2: Añadir dependencias de MongoDB Realm al proyecto
+**Descripción**:
+Integrar el SDK de MongoDB Realm Kotlin (`io.realm.kotlin:library-sync`) en `app/build.gradle.kts`. Configurar el plugin de Realm y asegurar que sea compatible con la versión de Kotlin usada en el proyecto (1.9+). Verificar compilación sin errores.
+
+**Checklist**:
+- [ ] Dependencia `io.realm.kotlin:library-sync` añadida
+- [ ] Plugin `io.realm.kotlin` configurado
+- [ ] Proyecto compila sin errores
+- [ ] Sincronización de Gradle completada
+
+**Etiquetas**: `enhancement`, `dependencies`, `mongodb`
+
+---
+
+### Issue #3: Crear modelo `MongoRecord` compatible con Realm
+**Descripción**:
+Definir una clase `MongoRecord` anotada con `@RealmModel` que contenga los campos `rondaMasAlta: Int` y `fecha: String`. Asegurar compatibilidad con el modelo existente `Record` de Room. Ubicar en `data/model/MongoRecord.kt`.
+
+**Checklist**:
+- [ ] Clase `MongoRecord` creada con anotación `@RealmModel`
+- [ ] Campos `rondaMasAlta` y `fecha` definidos
+- [ ] Compatible con serialización JSON
+- [ ] Sin conflictos de nombres con `Record` existente
+
+**Etiquetas**: `enhancement`, `model`, `mongodb`
+
+---
+
+### Issue #4: Implementar `MongoRepository` para operaciones CRUD
+**Descripción**:
+Crear `MongoRepository` usando MongoDB Realm Kotlin SDK con Coroutines. Implementar métodos:
+- `insertRecord(record: MongoRecord)`: Inserta un nuevo récord
+- `getHighestRecord(): MongoRecord?`: Obtiene el récord más alto
+- `getAllRecords(): List<MongoRecord>`: Lista todos los récords
+- `deleteAllRecords()`: Limpia la colección
+
+Manejar excepciones y estados de sincronización de forma reactiva.
+
+**Checklist**:
+- [ ] `MongoRepository` creado en `data/repository/`
+- [ ] Métodos CRUD implementados con Coroutines
+- [ ] Manejo robusto de excepciones
+- [ ] Sincronización con Realm Sync configurada
+- [ ] Pruebas unitarias básicas
+
+**Etiquetas**: `enhancement`, `repository`, `mongodb`
+
+---
+
+### Issue #5: Integrar MongoDB en `ModeloVistaSimon`
+**Descripción**:
+Modificar `ModeloVistaSimon` para que al actualizar el récord, lo guarde simultáneamente en:
+1. SharedPreferences (compatibilidad legacy)
+2. Room (almacenamiento local)
+3. MongoDB (remoto mediante MongoRepository)
+
+Usar `viewModelScope.launch` con Coroutines. No eliminar lógica existente; solo añadir capas nuevas. Manejar fallos de MongoDB sin afectar la experiencia local.
+
+**Checklist**:
+- [ ] `MongoRepository` inyectado en `ModeloVistaSimon`
+- [ ] Método `actualizarRecordEnTodasLasCap()`as creado
+- [ ] Sincronización en paralelo (SharedPrefs + Room + MongoDB)
+- [ ] Fallos de MongoDB no bloquean la app
+- [ ] Logs de sincronización añadidos
+
+**Etiquetas**: `enhancement`, `mvvm`, `mongodb`, `integration`
+
+---
+
+### Issue #6: Documentar la arquitectura de persistencia triple
+**Descripción**:
+Actualizar `README.md` con secciones:
+- **Arquitectura de Persistencia**: Explicar por qué coexisten SharedPreferences, Room y MongoDB
+- **Configuración de MongoDB**: Pasos para obtener credenciales en `local.properties`
+- **Sincronización de Datos**: Diagrama o descripción del flujo
+- **Seguridad**: Cómo se protegen las credenciales
+
+Incluir ejemplos de código y referencias a la documentación oficial.
+
+**Checklist**:
+- [ ] Sección de arquitectura añadida
+- [ ] Instrucciones de configuración claras
+- [ ] Diagrama de flujo (ASCII o imagen)
+- [ ] Ejemplos de código documentados
+- [ ] Sin credenciales expuestas
+
+**Etiquetas**: `documentation`, `mongodb`
+
+---
+
+### Issue #7: Configurar autenticación anónima de MongoDB Realm
+**Descripción**:
+Habilitar la autenticación anónima en MongoDB Atlas Console. Crear un `RealmConfiguration` en la app que use credenciales desde `local.properties`. Inicializar `Realm.open()` con sincronización automática antes de usar `MongoRepository`.
+
+**Checklist**:
+- [ ] Autenticación anónima habilitada en MongoDB
+- [ ] `RealmConfiguration` creado en `App.kt` o similar
+- [ ] Variables de entorno leídas correctamente
+- [ ] Conexión de prueba exitosa
+- [ ] Manejo de desconexiones y reconexiones
+
+**Etiquetas**: `enhancement`, `security`, `mongodb`
+
+---
+
+### Issue #8: Crear tests para `MongoRepository`
+**Descripción**:
+Escribir tests unitarios usando JUnit y MockK para validar:
+- Inserción correcta de registros
+- Recuperación del récord más alto
+- Manejo de errores de conexión
+- Sincronización de datos
+
+Usar Emulador de Realm o mocks para no depender de MongoDB real en CI/CD.
+
+**Checklist**:
+- [ ] Tests para `insertRecord()` creados
+- [ ] Tests para `getHighestRecord()` creados
+- [ ] Tests de manejo de errores
+- [ ] Cobertura mínima del 80%
+- [ ] CI/CD configurado
+
+**Etiquetas**: `enhancement`, `testing`, `mongodb`
