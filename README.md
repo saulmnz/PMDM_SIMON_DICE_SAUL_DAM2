@@ -218,102 +218,136 @@ class ModeloVistaSimon : ViewModel() {
 
 > ***Se implmenetaron dependencias de ROOM ( room-runtime, room-compiler ), clase Record como @Entity, DAO del record para operaciones básicas ( get, insert, clear ), base de datos AppDatabase ( singleton implícito ), integración directa en ModeloVistaSimón y verificación en MainActivity***
 
-```kotlin
-package com.example.simon_dice_saul.data.dao
+---
+# Simon Dice – Persistencia Triple con MongoDB Local
 
-import androidx.room.Dao
-import androidx.room.Insert
-import androidx.room.OnConflictStrategy
-import androidx.room.Query
-import com.example.simon_dice_saul.data.model.Record
+## 🗃️ Implementación de MongoDB (uso de GitHub Copilot)
 
-@Dao
-interface RecordDao {
+Esta práctica añade una **tercera capa de persistencia** a la app *Simon Dice*, cumpliendo con el requisito:
+> *"Guardar el récord en una base de datos MongoDB, además de mantener SharedPreferences y Room"*
 
-    @Query("SELECT * FROM record_table WHERE id = 0")
-    fun getRecord(): Record?
+Dado que **no se puede conectar directamente desde Android a MongoDB sin pagar**, se implementó una solución segura, realista y compatible con entornos académicos:
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    fun insertRecord(record: Record)
-
-    @Query("DELETE FROM record_table")
-    fun clearRecord()
-}
-```
+- ✅ **Room**: persistencia local principal (ya existente)
+- ✅ **SharedPreferences**: compatibilidad legacy (sin uso activo)
+- ✅ **MongoDB**: persistencia adicional en **máquina virtual local**, accesible mediante una **API REST intermedia**
 
 ---
 
-```kotlin
-package com.example.simon_dice_saul.data.database
+## 🔧 Issues implementados
 
-import androidx.room.Database
-import androidx.room.RoomDatabase
-import com.example.simon_dice_saul.data.dao.RecordDao
-import com.example.simon_dice_saul.data.model.Record
+### Issue #1: Configurar MongoDB y API REST en máquina virtual
+**Descripción**:  
+Instalar MongoDB en VM, crear base de datos `simon_dice` y colección `records`. Desarrollar un servidor REST mínimo con Node.js (`server.js`) que reciba récords vía POST y los almacene en MongoDB. El servidor escucha en `http://IP_VM:3000`.
 
-@Database(
-    entities = [Record::class],
-    version = 1,
-    exportSchema = false
-)
-abstract class AppDatabase : RoomDatabase() {
-    abstract fun recordDao(): RecordDao
-}
-```
+**Checklist**:
+- [x] MongoDB instalado y ejecutándose en VM
+- [x] Script `server.js` con Express y driver de MongoDB
+- [x] Puerto 3000 abierto en firewall
+- [x] Prueba manual de inserción exitosa
+
+**Etiquetas**: `enhancement`, `database`, `mongodb`, `local`
 
 ---
 
-```kotlin
-package com.example.simon_dice_saul
+### Issue #2: Añadir dependencias HTTP para Android
+**Descripción**:  
+Integrar **Ktor Client** en `app/build.gradle.kts` para permitir comunicación HTTP con la API REST local. Se usan módulos ligeros compatibles con Android.
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.ui.Modifier
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.room.Room
-import com.example.simon_dice_saul.data.database.AppDatabase
-import com.example.simon_dice_saul.data.model.Record
-import com.example.simon_dice_saul.presentation.ui.SimonDiceScreen
-import com.example.simon_dice_saul.presentation.viewmodel.ModeloVistaSimon
-import com.example.simon_dice_saul.ui.theme.SIMON_DICE_SAULTheme
-import java.text.SimpleDateFormat
-import java.util.*
+**Checklist**:
+- [x] Dependencias `ktor-client-core`, `ktor-client-cio`, `ktor-client-content-negotiation` añadidas
+- [x] Proyecto compila sin errores
+- [x] Serialización JSON configurada
 
-class MainActivity : ComponentActivity() {
+**Etiquetas**: `enhancement`, `dependencies`, `http`
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+---
 
-        // Opcional: prueba inicial de Room (puedes borrar este bloque si no lo necesitas)
-        val db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java,
-            "simon_dice_db"
-        ).allowMainThreadQueries().build()
+### Issue #3: Implementar `MongoApiRepository`
+**Descripción**:  
+Crear repositorio que envíe récords a `http://IP_VM:3000/record` usando Ktor. La clase maneja errores de red sin afectar la experiencia del usuario.
 
-        val dao = db.recordDao()
-        if (dao.getRecord() == null) {
-            val fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
-            dao.insertRecord(Record(rondaMasAlta = 0, fecha = fecha))
-        }
+**Checklist**:
+- [x] Clase `MongoApiRepository.kt` creada
+- [x] Método `saveRecord()` con Coroutines
+- [x] Manejo de excepciones robusto
+- [x] IP de VM configurable
 
-        setContent {
-            SIMON_DICE_SAULTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    val viewModel: ModeloVistaSimon = viewModel {
-                        ModeloVistaSimon(this@MainActivity.application)
-                    }
-                    SimonDiceScreen(viewModel = viewModel)
-                }
-            }
-        }
-    }
-}
-```
+**Etiquetas**: `enhancement`, `repository`, `http`
+
+---
+
+### Issue #4: Integrar MongoDB en `ModeloVistaSimon`
+**Descripción**:  
+Modificar el ViewModel para que, al superar un récord, lo guarde en:
+1. **Room** (principal)
+2. **MongoDB** (vía API REST)
+
+La operación es asíncrona y no bloquea la UI. Si falla la red, el juego sigue funcionando.
+
+**Checklist**:
+- [x] `MongoApiRepository` inyectado en ViewModel
+- [x] Llamada en `viewModelScope.launch`
+- [x] Sin impacto en lógica existente
+- [x] Logs de depuración añadidos
+
+**Etiquetas**: `enhancement`, `mvvm`, `integration`
+
+---
+
+### Issue #5: Documentar arquitectura triple
+**Descripción**:  
+Este README explica las tres capas de persistencia, la razón de usar una API REST intermedia, y cómo configurar el entorno local.
+
+**Checklist**:
+- [x] Explicación clara de la arquitectura
+- [x] Instrucciones para configurar VM
+- [x] Diagrama de flujo implícito
+- [x] Sin credenciales expuestas
+
+**Etiquetas**: `documentation`
+
+---
+
+## 📦 Arquitectura de persistencia
+
+| Capa | Tecnología | Propósito |
+|------|-----------|----------|
+| Legacy | `SharedPreferences` | Compatibilidad (sin uso activo) |
+| Principal | `Room` (SQLite) | Persistencia local robusta |
+| Adicional | `MongoDB` (VM local) | Backup en base de datos NoSQL |
+
+> 🔒 **Seguridad**: La app **nunca se conecta directamente a MongoDB**. Usa una API REST como intermediario, siguiendo buenas prácticas de desarrollo móvil.
+
+---
+
+## 🛠️ Configuración local (requerida para pruebas)
+
+1. **En tu VM**:
+    - Instalar MongoDB y asegurarte de que `mongod` esté corriendo
+    - Ejecutar `node server.js` en la carpeta del proyecto
+    - Abrir puerto `3000` en el firewall
+
+2. **En tu app Android**:
+    - Reemplazar `192.168.1.100` por la IP real de tu VM en:
+        - `MongoApiRepository.kt`
+        - `ModeloVistaSimon.kt`
+
+3. **Prueba**:
+    - Juega y supera tu récord
+    - Verifica en MongoDB:
+      ```bash
+      mongo simon_dice --eval "db.records.find().pretty()"
+      ```
+
+---
+
+## 💡 Notas finales
+
+- Esta implementación **cumple el enunciado** sin requerir tarjeta de crédito ni servicios de pago.
+- El uso de **GitHub Copilot** fue clave para:
+    - Generar la estructura de issues
+    - Proponer código inicial para el repositorio
+    - Sugerir mensajes de commit convencionales
+    - Ayudar en la redacción de documentación técnica
+- Todo el código generado por IA fue **revisado, corregido y adaptado manualmente** para garantizar funcionalidad, seguridad y calidad.
