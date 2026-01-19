@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.room.Room
 import com.example.simon_dice_saul.AppDatabase
 import com.example.simon_dice_saul.data.model.Record
+import com.example.simon_dice_saul.data.repository.MongoApiRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,16 +25,20 @@ class ModeloVistaSimon(
     private val skipDelaysForTest: Boolean = false
 ) : AndroidViewModel(aplicacion) {
 
-    // 🔹 Instancia de Room (como en el ejemplo del profe)
+    // 🔹 Room (persistencia local principal)
     private val db = Room.databaseBuilder(
         aplicacion,
         AppDatabase::class.java,
         "simon_dice_db"
     )
-        .allowMainThreadQueries()  // ⚠️ Solo para simpleza (no en producción grande)
+        .allowMainThreadQueries() // Aceptable en prototipos pequeños
         .build()
     private val recordDao = db.recordDao()
 
+    // 🔹 API REST → MongoDB local en tu VM
+    private val mongoApiRepo = MongoApiRepository("http://172.20.10.2:3000") // ← ¡CAMBIA ESTA IP POR LA DE TU VM!
+
+    // Estados de UI
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
@@ -53,11 +58,8 @@ class ModeloVistaSimon(
     private var estaMostrandoSecuencia = false
 
     init {
-        // Cargar récord desde Room
+        // Cargar récord desde Room (fuente principal)
         _estadoRecord.value = recordDao.getRecord()
-    }
-
-    private fun cargarRecord() {
     }
 
     fun iniciarPartida() {
@@ -127,11 +129,7 @@ class ModeloVistaSimon(
     private fun actualizarRecordSiEsNecesario(rondaActual: Int) {
         val recordActual = _estadoRecord.value
 
-        println("DEBUG ModeloVistaSimon: Record actual = $recordActual, Ronda actual = $rondaActual")
-
         if (recordActual == null || rondaActual > recordActual.rondaMasAlta) {
-            println("DEBUG ModeloVistaSimon: ¡Nuevo récor!")
-
             val fecha = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date())
             val nuevoRecord = Record(
                 id = 0,
@@ -139,8 +137,19 @@ class ModeloVistaSimon(
                 fecha = fecha
             )
 
+            // ✅ Guardar en Room (local)
             recordDao.insertRecord(nuevoRecord)
-            _estadoRecord.value = nuevoRecord  // Actualiza UI
+            _estadoRecord.value = nuevoRecord
+
+            // ✅ Enviar a MongoDB local (vía API REST en tu VM)
+            viewModelScope.launch {
+                try {
+                    mongoApiRepo.saveRecord(nuevoRecord)
+                } catch (e: Exception) {
+                    // Si falla la red, no afecta al juego
+                    println("WARN: No se pudo enviar récord a MongoDB: ${e.message}")
+                }
+            }
         }
     }
 
@@ -151,9 +160,6 @@ class ModeloVistaSimon(
 
         if (esJuegoTerminado) {
             val estadoFinal = motorJuego.obtenerEstadoJuegoTerminado()
-
-            println("DEBUG ModeloVistaSimon: Juego terminado en ronda ${estadoFinal.rondaActual}")
-
             updateUiState {
                 copy(
                     gameState = GameState.ERROR,
@@ -163,7 +169,6 @@ class ModeloVistaSimon(
                     highlightedColor = null
                 )
             }
-
             actualizarRecordSiEsNecesario(estadoFinal.rondaActual)
             _eventEffect.value = EventEffect.ErrorSound
             return
@@ -189,9 +194,7 @@ class ModeloVistaSimon(
                 }
             }
         } else {
-            updateUiState {
-                copy(highlightedColor = null)
-            }
+            updateUiState { copy(highlightedColor = null) }
         }
     }
 

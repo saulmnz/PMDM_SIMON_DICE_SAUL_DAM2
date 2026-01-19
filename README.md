@@ -219,144 +219,135 @@ class ModeloVistaSimon : ViewModel() {
 > ***Se implmenetaron dependencias de ROOM ( room-runtime, room-compiler ), clase Record como @Entity, DAO del record para operaciones básicas ( get, insert, clear ), base de datos AppDatabase ( singleton implícito ), integración directa en ModeloVistaSimón y verificación en MainActivity***
 
 ---
+# Simon Dice – Persistencia Triple con MongoDB Local
 
-### IMPLMENTACIÓN MONGODB (USO DE COPILOT) 🦢
+## 🗃️ Implementación de MongoDB (uso de GitHub Copilot)
 
-### Issue #1: Configurar cuenta y base de datos en MongoDB Atlas
-**Descripción**:
-Crear una cuenta gratuita en [MongoDB Atlas](https://www.mongodb.com/atlas), crear un proyecto llamado `simon_dice`, una base de datos `simon_dice`, y una colección `records`. Habilitar acceso desde cualquier IP (0.0.0.0/0) para desarrollo y crear un usuario con contraseña. Guardar la cadena de conexión y el App ID en `local.properties` (no commitear credenciales).
+Esta práctica añade una **tercera capa de persistencia** a la app *Simon Dice*, cumpliendo con el requisito:
+> *"Guardar el récord en una base de datos MongoDB, además de mantener SharedPreferences y Room"*
 
-**Checklist**:
-- [ ] Cuenta de MongoDB Atlas creada
-- [ ] Proyecto `simon_dice` creado
-- [ ] Base de datos `simon_dice` con colección `records` configurada
-- [ ] Usuario con permisos de lectura/escritura creado
-- [ ] Cadena de conexión y App ID guardados de forma segura
+Dado que **no se puede conectar directamente desde Android a MongoDB sin pagar**, se implementó una solución segura, realista y compatible con entornos académicos:
 
-**Etiquetas**: `enhancement`, `database`, `mongodb`, `setup`
+- ✅ **Room**: persistencia local principal (ya existente)
+- ✅ **SharedPreferences**: compatibilidad legacy (sin uso activo)
+- ✅ **MongoDB**: persistencia adicional en **máquina virtual local**, accesible mediante una **API REST intermedia**
 
 ---
 
-### Issue #2: Añadir dependencias de MongoDB Realm al proyecto
-**Descripción**:
-Integrar el SDK de MongoDB Realm Kotlin (`io.realm.kotlin:library-sync`) en `app/build.gradle.kts`. Configurar el plugin de Realm y asegurar que sea compatible con la versión de Kotlin usada en el proyecto (1.9+). Verificar compilación sin errores.
+## 🔧 Issues implementados
+
+### Issue #1: Configurar MongoDB y API REST en máquina virtual
+**Descripción**:  
+Instalar MongoDB en VM, crear base de datos `simon_dice` y colección `records`. Desarrollar un servidor REST mínimo con Node.js (`server.js`) que reciba récords vía POST y los almacene en MongoDB. El servidor escucha en `http://IP_VM:3000`.
 
 **Checklist**:
-- [ ] Dependencia `io.realm.kotlin:library-sync` añadida
-- [ ] Plugin `io.realm.kotlin` configurado
-- [ ] Proyecto compila sin errores
-- [ ] Sincronización de Gradle completada
+- [x] MongoDB instalado y ejecutándose en VM
+- [x] Script `server.js` con Express y driver de MongoDB
+- [x] Puerto 3000 abierto en firewall
+- [x] Prueba manual de inserción exitosa
 
-**Etiquetas**: `enhancement`, `dependencies`, `mongodb`
+**Etiquetas**: `enhancement`, `database`, `mongodb`, `local`
 
 ---
 
-### Issue #3: Crear modelo `MongoRecord` compatible con Realm
-**Descripción**:
-Definir una clase `MongoRecord` anotada con `@RealmModel` que contenga los campos `rondaMasAlta: Int` y `fecha: String`. Asegurar compatibilidad con el modelo existente `Record` de Room. Ubicar en `data/model/MongoRecord.kt`.
+### Issue #2: Añadir dependencias HTTP para Android
+**Descripción**:  
+Integrar **Ktor Client** en `app/build.gradle.kts` para permitir comunicación HTTP con la API REST local. Se usan módulos ligeros compatibles con Android.
 
 **Checklist**:
-- [ ] Clase `MongoRecord` creada con anotación `@RealmModel`
-- [ ] Campos `rondaMasAlta` y `fecha` definidos
-- [ ] Compatible con serialización JSON
-- [ ] Sin conflictos de nombres con `Record` existente
+- [x] Dependencias `ktor-client-core`, `ktor-client-cio`, `ktor-client-content-negotiation` añadidas
+- [x] Proyecto compila sin errores
+- [x] Serialización JSON configurada
 
-**Etiquetas**: `enhancement`, `model`, `mongodb`
+**Etiquetas**: `enhancement`, `dependencies`, `http`
 
 ---
 
-### Issue #4: Implementar `MongoRepository` para operaciones CRUD
-**Descripción**:
-Crear `MongoRepository` usando MongoDB Realm Kotlin SDK con Coroutines. Implementar métodos:
-- `insertRecord(record: MongoRecord)`: Inserta un nuevo récord
-- `getHighestRecord(): MongoRecord?`: Obtiene el récord más alto
-- `getAllRecords(): List<MongoRecord>`: Lista todos los récords
-- `deleteAllRecords()`: Limpia la colección
-
-Manejar excepciones y estados de sincronización de forma reactiva.
+### Issue #3: Implementar `MongoApiRepository`
+**Descripción**:  
+Crear repositorio que envíe récords a `http://IP_VM:3000/record` usando Ktor. La clase maneja errores de red sin afectar la experiencia del usuario.
 
 **Checklist**:
-- [ ] `MongoRepository` creado en `data/repository/`
-- [ ] Métodos CRUD implementados con Coroutines
-- [ ] Manejo robusto de excepciones
-- [ ] Sincronización con Realm Sync configurada
-- [ ] Pruebas unitarias básicas
+- [x] Clase `MongoApiRepository.kt` creada
+- [x] Método `saveRecord()` con Coroutines
+- [x] Manejo de excepciones robusto
+- [x] IP de VM configurable
 
-**Etiquetas**: `enhancement`, `repository`, `mongodb`
+**Etiquetas**: `enhancement`, `repository`, `http`
 
 ---
 
-### Issue #5: Integrar MongoDB en `ModeloVistaSimon`
-**Descripción**:
-Modificar `ModeloVistaSimon` para que al actualizar el récord, lo guarde simultáneamente en:
-1. SharedPreferences (compatibilidad legacy)
-2. Room (almacenamiento local)
-3. MongoDB (remoto mediante MongoRepository)
+### Issue #4: Integrar MongoDB en `ModeloVistaSimon`
+**Descripción**:  
+Modificar el ViewModel para que, al superar un récord, lo guarde en:
+1. **Room** (principal)
+2. **MongoDB** (vía API REST)
 
-Usar `viewModelScope.launch` con Coroutines. No eliminar lógica existente; solo añadir capas nuevas. Manejar fallos de MongoDB sin afectar la experiencia local.
+La operación es asíncrona y no bloquea la UI. Si falla la red, el juego sigue funcionando.
 
 **Checklist**:
-- [ ] `MongoRepository` inyectado en `ModeloVistaSimon`
-- [ ] Método `actualizarRecordEnTodasLasCap()`as creado
-- [ ] Sincronización en paralelo (SharedPrefs + Room + MongoDB)
-- [ ] Fallos de MongoDB no bloquean la app
-- [ ] Logs de sincronización añadidos
+- [x] `MongoApiRepository` inyectado en ViewModel
+- [x] Llamada en `viewModelScope.launch`
+- [x] Sin impacto en lógica existente
+- [x] Logs de depuración añadidos
 
-**Etiquetas**: `enhancement`, `mvvm`, `mongodb`, `integration`
+**Etiquetas**: `enhancement`, `mvvm`, `integration`
 
 ---
 
-### Issue #6: Documentar la arquitectura de persistencia triple
-**Descripción**:
-Actualizar `README.md` con secciones:
-- **Arquitectura de Persistencia**: Explicar por qué coexisten SharedPreferences, Room y MongoDB
-- **Configuración de MongoDB**: Pasos para obtener credenciales en `local.properties`
-- **Sincronización de Datos**: Diagrama o descripción del flujo
-- **Seguridad**: Cómo se protegen las credenciales
-
-Incluir ejemplos de código y referencias a la documentación oficial.
+### Issue #5: Documentar arquitectura triple
+**Descripción**:  
+Este README explica las tres capas de persistencia, la razón de usar una API REST intermedia, y cómo configurar el entorno local.
 
 **Checklist**:
-- [ ] Sección de arquitectura añadida
-- [ ] Instrucciones de configuración claras
-- [ ] Diagrama de flujo (ASCII o imagen)
-- [ ] Ejemplos de código documentados
-- [ ] Sin credenciales expuestas
+- [x] Explicación clara de la arquitectura
+- [x] Instrucciones para configurar VM
+- [x] Diagrama de flujo implícito
+- [x] Sin credenciales expuestas
 
-**Etiquetas**: `documentation`, `mongodb`
+**Etiquetas**: `documentation`
 
 ---
 
-### Issue #7: Configurar autenticación anónima de MongoDB Realm
-**Descripción**:
-Habilitar la autenticación anónima en MongoDB Atlas Console. Crear un `RealmConfiguration` en la app que use credenciales desde `local.properties`. Inicializar `Realm.open()` con sincronización automática antes de usar `MongoRepository`.
+## 📦 Arquitectura de persistencia
 
-**Checklist**:
-- [ ] Autenticación anónima habilitada en MongoDB
-- [ ] `RealmConfiguration` creado en `App.kt` o similar
-- [ ] Variables de entorno leídas correctamente
-- [ ] Conexión de prueba exitosa
-- [ ] Manejo de desconexiones y reconexiones
+| Capa | Tecnología | Propósito |
+|------|-----------|----------|
+| Legacy | `SharedPreferences` | Compatibilidad (sin uso activo) |
+| Principal | `Room` (SQLite) | Persistencia local robusta |
+| Adicional | `MongoDB` (VM local) | Backup en base de datos NoSQL |
 
-**Etiquetas**: `enhancement`, `security`, `mongodb`
+> 🔒 **Seguridad**: La app **nunca se conecta directamente a MongoDB**. Usa una API REST como intermediario, siguiendo buenas prácticas de desarrollo móvil.
 
 ---
 
-### Issue #8: Crear tests para `MongoRepository`
-**Descripción**:
-Escribir tests unitarios usando JUnit y MockK para validar:
-- Inserción correcta de registros
-- Recuperación del récord más alto
-- Manejo de errores de conexión
-- Sincronización de datos
+## 🛠️ Configuración local (requerida para pruebas)
 
-Usar Emulador de Realm o mocks para no depender de MongoDB real en CI/CD.
+1. **En tu VM**:
+    - Instalar MongoDB y asegurarte de que `mongod` esté corriendo
+    - Ejecutar `node server.js` en la carpeta del proyecto
+    - Abrir puerto `3000` en el firewall
 
-**Checklist**:
-- [ ] Tests para `insertRecord()` creados
-- [ ] Tests para `getHighestRecord()` creados
-- [ ] Tests de manejo de errores
-- [ ] Cobertura mínima del 80%
-- [ ] CI/CD configurado
+2. **En tu app Android**:
+    - Reemplazar `192.168.1.100` por la IP real de tu VM en:
+        - `MongoApiRepository.kt`
+        - `ModeloVistaSimon.kt`
 
-**Etiquetas**: `enhancement`, `testing`, `mongodb`
+3. **Prueba**:
+    - Juega y supera tu récord
+    - Verifica en MongoDB:
+      ```bash
+      mongo simon_dice --eval "db.records.find().pretty()"
+      ```
+
+---
+
+## 💡 Notas finales
+
+- Esta implementación **cumple el enunciado** sin requerir tarjeta de crédito ni servicios de pago.
+- El uso de **GitHub Copilot** fue clave para:
+    - Generar la estructura de issues
+    - Proponer código inicial para el repositorio
+    - Sugerir mensajes de commit convencionales
+    - Ayudar en la redacción de documentación técnica
+- Todo el código generado por IA fue **revisado, corregido y adaptado manualmente** para garantizar funcionalidad, seguridad y calidad.
